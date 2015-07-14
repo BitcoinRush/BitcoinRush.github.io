@@ -1,9 +1,16 @@
 body {
     margin-top: 20px;
+    color: lightgray;
+}
+
+input {
+    background-color: #E0DFDF!important;
 }
 
 .navbar .navbar-brand {
-    color: #777777;
+    color: red;
+    font-size: xx-large;
+
 }
 .navbar .brand-name:hover {
     text-decoration: underline;

@@ -4,13 +4,13 @@
 
 var config = {
   // - Your app's id on moneypot.com
-  app_id: 18,                             // <----------------------------- EDIT ME!
+  app_id: 121,                             // <----------------------------- EDIT ME!
   // - Displayed in the navbar
-  app_name: 'Untitled Dice',
+  app_name: 'Bitcoin Rush',
   // - For your faucet to work, you must register your site at Recaptcha
   // - https://www.google.com/recaptcha/intro/index.html
-  recaptcha_sitekey: '6LfI_QUTAAAAACrjjuzmLw0Cjx9uABxb8uguLbph',  // <----- EDIT ME!
-  redirect_uri: 'https://untitled-dice.github.io',
+  recaptcha_sitekey: '6LdnuwkTAAAAANIG9DAHMxPSbopg0yAavoNrC4Zx',  // <----- EDIT ME!
+  redirect_uri: isRunningLocally() ? 'http://localhost:5000' : 'https://www.bitcoinrush.com',
   mp_browser_uri: 'https://www.moneypot.com',
   mp_api_uri: 'https://api.moneypot.com',
   chat_uri: 'https://a-chat-server.herokuapp.com',
@@ -54,7 +54,7 @@ helpers.multiplierToWinProb = function(multiplier) {
   console.assert(typeof multiplier === 'number');
   console.assert(multiplier > 0);
 
-  return 0.99 / multiplier;
+  return 0.999 / multiplier;
 };
 
 helpers.calcNumber = function(cond, winProb) {
@@ -433,7 +433,8 @@ var worldStore = new Store('world', {
   hotkeysEnabled: false,
   currTab: 'MY_BETS',
   bets: new CBuffer(25),
-  grecaptcha: undefined
+  grecaptcha: undefined,
+  hideInfo: false
 }, function() {
   var self = this;
 
@@ -523,6 +524,11 @@ var worldStore = new Store('world', {
   Dispatcher.registerCallback('GRECAPTCHA_LOADED', function(_grecaptcha) {
     self.state.grecaptcha = _grecaptcha;
     self.emitter.emit('grecaptcha_loaded');
+  });
+
+  Dispatcher.registerCallback('HIDE_INFO', function() {
+    self.state.hideInfo = true;
+    self.emitter.emit('hide_info');
   });
 
 });
@@ -1462,7 +1468,9 @@ var BetBox = React.createClass({
               null,
               el.div(
                 {className: 'col-sm-6'},
-                React.createElement(BetBoxProfit, null)
+                React.createElement(BetBoxProfit, null),
+                el.hr(null),
+                'Max profit: 200,000 bits'
               ),
               el.div(
                 {className: 'col-sm-6'},
@@ -1765,27 +1773,47 @@ var Footer = React.createClass({
           href: 'https://www.moneypot.com'
         },
         'Moneypot'
-      )
+      ), ' | ', el.a({ href: 'https://bitcointalk.org/index.php?topic=1120913.0'} , 'bitcoin talk thread'),
+      el.br(),
+      'Please note we have no association with bitcoinrush.io or bitcoinrush.tk'
     );
   }
 });
 
 var App = React.createClass({
   displayName: 'App',
+  _onStoreChange: function() {
+    this.forceUpdate();
+  },
+  componentDidMount: function() {
+    worldStore.on('hide_info', this._onStoreChange);
+  },
+  componentWillUnmount: function() {
+    worldStore.off('hide_info', this._onStoreChange);
+  },
   render: function() {
     return el.div(
       {className: 'container'},
       // Navbar
       React.createElement(Navbar, null),
+      (worldStore.state.hideInfo ? null :
+      el.div({ className: 'alert alert-info alert-dismissible'},
+        el.button({ type: 'button', className: 'close', onClick: this.setHideInfo }, 'x'),
+        'Bitcoin Rush is a provably fair bitcoin dice site, offering an amazingly low 0.1% house edge. ' +
+        'The catch is the limits are low, and we\'re still pretty much a toy site. All your money is however managed ' +
+        ' by the reputable moneypot.com so you don\'t need to worry. We built this as ' +
+        'a way of giving people a legitimate alternative to rigged sites pretending to have a low edge.'
+      )
+      ),
       // BetBox & ChatBox
       el.div(
         {className: 'row'},
         el.div(
-          {className: 'col-sm-5'},
+          {className: 'col-sm-6'},
           React.createElement(BetBox, null)
         ),
         el.div(
-          {className: 'col-sm-7'},
+          {className: 'col-sm-6'},
           React.createElement(ChatBox, null)
         )
       ),
@@ -1799,6 +1827,10 @@ var App = React.createClass({
       // Footer
       React.createElement(Footer, null)
     );
+  },
+  setHideInfo: function() {
+    console.log('hide info called');
+    Dispatcher.sendAction('HIDE_INFO');
   }
 });
 
